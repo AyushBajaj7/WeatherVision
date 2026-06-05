@@ -87,7 +87,7 @@ def fetch_precipitation(lat: str, lon: str) -> dict:
         "hourly":            "precipitation,temperature_2m",
         "past_hours":        "24",
         "forecast_hours":    "48",
-        "timezone":          "auto",
+        "timezone":          "UTC",
         "precipitation_unit": "mm",
     }
     qs = urllib.parse.urlencode(params)

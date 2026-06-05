@@ -31,7 +31,18 @@ function deg2dir(deg) {
 }
 
 function fmtTime(unix, tz = 0) {
-  return new Date((unix + tz) * 1000).toUTCString().slice(17, 22);
+  const d = new Date((unix + tz) * 1000);
+  const hours = d.getUTCHours();
+  const minutes = d.getUTCMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hr12 = hours % 12 || 12;
+  const minStr = String(minutes).padStart(2, '0');
+  return `${hr12}:${minStr} ${ampm}`;
+}
+
+function fmtLocalDay(unix, tz = 0) {
+  const d = new Date((unix + tz) * 1000);
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()];
 }
 
 function getEmoji(main = "") {
@@ -82,7 +93,7 @@ function parseRecentRain(raw) {
   const now     = Date.now();
   const entries = times.map((time, i) => ({
     time,
-    timestamp: new Date(time).getTime(),
+    timestamp: new Date(time + "Z").getTime(),
     amount:    Number(precipitation[i]) || 0,
     temperature: Number(temperatures[i]),
   })).filter(e => Number.isFinite(e.timestamp));
@@ -158,11 +169,13 @@ function getForecastTempRange(forecast, recentRain, weather) {
   return { min: weather.main.temp_min, max: weather.main.temp_max, label: "Current area" };
 }
 
-function buildDailyForecast(list = []) {
+function buildDailyForecast(list = [], tz = 0) {
   const days = {};
   list.forEach(item => {
-    const d = new Date(item.dt * 1000);
-    const key = d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" });
+    const d = new Date((item.dt + tz) * 1000);
+    const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getUTCMonth()];
+    const key = `${dayName}, ${monthNames} ${d.getUTCDate()}`;
     if (!days[key]) days[key] = { temps: [], pops: [], icons: [], descs: [] };
     days[key].temps.push(item.main.temp);
     days[key].pops.push((item.pop || 0) * 100);
@@ -338,13 +351,12 @@ function renderRain(weather, forecast, recentRain) {
   const rainPillClass = rain1h > 5 ? "wv-pill-red" : rain1h > 0 ? "wv-pill-blue" : "wv-pill-muted";
   const rainPillLabel = rain1h > 7.5 ? "Heavy Rain" : rain1h > 2.5 ? "Moderate" : rain1h > 0 ? "Light Rain" : "None";
 
+  const tz = weather.timezone;
   const firstRainStr = rains.firstRain
-    ? new Date(rains.firstRain.dt * 1000).toLocaleTimeString("en-US",
-        { hour:"2-digit", minute:"2-digit", hour12:true })
+    ? fmtTime(rains.firstRain.dt, tz)
     : "None in 48h";
   const firstRainSub = rains.firstRain
-    ? new Date(rains.firstRain.dt * 1000).toLocaleDateString("en-US",
-        { weekday:"short", day:"numeric", month:"short" })
+    ? fmtLocalDay(rains.firstRain.dt, tz)
     : "";
 
   DOM.rainGrid.innerHTML = `
@@ -376,7 +388,7 @@ function renderRain(weather, forecast, recentRain) {
     DOM.stripRow.innerHTML = forecast.list.slice(0, 8).map(s => {
       const rain = s.rain?.["3h"] || 0;
       return `<div class="wv-strip-slot ${rain > 0 ? 'wv-slot-wet' : ''}">
-        <span class="wv-slot-time">${new Date(s.dt * 1000).toLocaleTimeString("en-US", {hour:"2-digit", minute:"2-digit", hour12:true})}</span>
+        <span class="wv-slot-time">${fmtTime(s.dt, tz)}</span>
         <span class="wv-slot-icon">${getEmoji(s.weather[0].main)}</span>
         <span class="wv-slot-temp">${Math.round(s.main.temp)}°</span>
         ${rain > 0 ? `<span class="wv-slot-rain">${rain.toFixed(1)}mm</span>` : ""}
@@ -393,7 +405,8 @@ function renderForecast(forecast) {
     DOM.forecastRow.innerHTML = `<p style="color:var(--text-dim);font-size:.85rem">Forecast unavailable</p>`;
     return;
   }
-  const daily = buildDailyForecast(forecast.list);
+  const tz = forecast.city?.timezone ?? 0;
+  const daily = buildDailyForecast(forecast.list, tz);
   DOM.forecastRow.innerHTML = daily.map(d => `
     <div class="wv-forecast-card">
       <div class="wv-fc-day">${d.day}</div>
@@ -413,9 +426,8 @@ function buildChartDatasets(primaryForecast, compForecast = null) {
   const slice = (list, n = 12) => list.slice(0, n);
 
   const primaryList = slice(primaryForecast?.list ?? []);
-  const labels = primaryList.map(e =>
-    new Date(e.dt * 1000).toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", hour12:true })
-  );
+  const tzPrimary = state.primary?.weather?.timezone ?? 0;
+  const labels = primaryList.map(e => fmtTime(e.dt, tzPrimary));
   const primaryTemps = primaryList.map(e => +e.main.temp.toFixed(1));
 
   const datasets = [
