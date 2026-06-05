@@ -26,8 +26,8 @@ OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
 OPENWEATHER_BASE    = "https://api.openweathermap.org/data/2.5"
 OPEN_METEO_BASE     = "https://api.open-meteo.com/v1/forecast"
 STATIC_DIR          = os.path.dirname(__file__)
-HOST                = "localhost"
-PORT                = 8080
+HOST                = "0.0.0.0"
+PORT                = int(os.environ.get("PORT", 8080))
 REQUEST_TIMEOUT     = 15
 
 
