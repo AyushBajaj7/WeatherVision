@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeatherVision — Real-Time Weather Analytics Dashboard</title>
+  <meta name="description" content="WeatherVision: live weather, AQI, temperature trends and city comparison powered by OpenWeatherMap." />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="style.css?v=2" />
+</head>
+<body>
+
+  <header class="wv-header" role="banner">
+    <div class="wv-header-inner">
+      <div class="wv-logo">
+        <span class="wv-logo-icon">🌐</span>
+        <span class="wv-logo-text">WeatherVision</span>
+      </div>
+
+      <div class="wv-search-group">
+        <div class="wv-search-wrap">
+          <span class="wv-search-icon">🔍</span>
+          <input
+            id="city-input"
+            type="text"
+            class="wv-search-input"
+            placeholder="Search city — Tokyo, London, Mumbai…"
+            autocomplete="off"
+            aria-label="City search"
+          />
+        </div>
+        <button id="btn-search" class="wv-btn wv-btn-primary" aria-label="Search weather">
+          Search
+        </button>
+        <button id="btn-locate" class="wv-btn wv-btn-ghost" aria-label="Use my location">
+          📍 Locate
+        </button>
+        <button id="btn-compare-toggle" class="wv-btn wv-btn-outline" aria-label="Compare cities" aria-pressed="false">
+          ⚖ Compare
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wv-main container-fluid" role="main">
+
+    <div id="error-banner" class="wv-error-banner d-none" role="alert" aria-live="polite"></div>
+
+    <div id="loading-overlay" class="wv-loading d-none" aria-live="polite" aria-label="Loading weather data">
+      <div class="wv-spinner"></div>
+      <p class="wv-loading-text">Fetching live weather data…</p>
+    </div>
+
+    <section id="welcome-state" class="wv-welcome" aria-label="Welcome">
+      <div class="wv-welcome-icon">🌤️</div>
+      <h1 class="wv-welcome-title">WeatherVision</h1>
+      <p class="wv-welcome-sub">Real-time weather analytics, AQI monitoring &amp; city comparison dashboard</p>
+      <p class="wv-welcome-hint">Search a city or use <strong>📍 Locate</strong> to get started</p>
+    </section>
+
+    <div id="dashboard" class="d-none">
+
+      <div class="row g-4 mb-4" id="row-hero">
+
+        <div class="col-12 col-md-6">
+          <div class="wv-card wv-card-hero" id="hero-card">
+            <div class="wv-hero-top">
+              <div class="wv-hero-city-wrap">
+                <div class="wv-hero-city" id="hero-city">—</div>
+                <div class="wv-hero-country" id="hero-country"></div>
+              </div>
+              <div class="wv-hero-weather-icon" id="hero-icon" aria-hidden="true">🌤️</div>
+            </div>
+            <div class="wv-hero-temp-row">
+              <div class="wv-hero-temp" id="hero-temp">—°</div>
+              <div class="wv-hero-temp-meta">
+                <div class="wv-hero-condition" id="hero-condition">—</div>
+                <div class="wv-hero-feels" id="hero-feels">Feels like —°C</div>
+                <div class="wv-hero-range" id="hero-range">—</div>
+              </div>
+            </div>
+            <div class="wv-pills-row" id="hero-pills"></div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="wv-card" id="aqi-card">
+            <div class="wv-card-header">
+              <span class="wv-card-icon">🏭</span>
+              <span class="wv-card-title">Air Quality Index</span>
+            </div>
+            <div id="aqi-content" class="wv-aqi-content">
+              <div class="wv-aqi-score-row">
+                <span class="wv-aqi-score-label" id="aqi-score-label">—</span>
+              </div>
+              <div class="wv-aqi-bar-wrap" role="progressbar" aria-valuenow="0" aria-valuemin="1" aria-valuemax="5">
+                <div class="wv-aqi-bar-track">
+                  <div class="wv-aqi-bar-fill" id="aqi-bar-fill"></div>
+                </div>
+                <div class="wv-aqi-bar-labels">
+                  <span>Good</span><span>Fair</span><span>Mod.</span><span>Poor</span><span>V.Poor</span>
+                </div>
+              </div>
+              <div class="wv-pollutants" id="aqi-pollutants"></div>
+            </div>
+            <div id="aqi-empty" class="wv-aqi-empty d-none">AQI data unavailable</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4" id="row-compare">
+        <div class="col-12">
+          <div class="wv-card" id="compare-card">
+            <div class="wv-card-header">
+              <span class="wv-card-icon">⚖</span>
+              <span class="wv-card-title">City Comparison</span>
+            </div>
+            <div class="wv-compare-search-row">
+              <div class="wv-search-wrap flex-grow-1">
+                <span class="wv-search-icon">🔍</span>
+                <input
+                  id="compare-input"
+                  type="text"
+                  class="wv-search-input"
+                  placeholder="Enter second city to compare…"
+                  autocomplete="off"
+                  aria-label="Compare city search"
+                />
+              </div>
+              <button id="btn-compare-go" class="wv-btn wv-btn-primary" aria-label="Fetch comparison data">
+                Compare
+              </button>
+            </div>
+            <div id="compare-loading" class="wv-compare-loading d-none">
+              <div class="wv-spinner-sm"></div> Fetching comparison data…
+            </div>
+            <div id="compare-matrix" class="wv-compare-matrix d-none"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4" id="row-chart">
+        <div class="col-12">
+          <div class="wv-card">
+            <div class="wv-card-header">
+              <span class="wv-card-icon">📈</span>
+              <span class="wv-card-title">Temperature Trend</span>
+              <span class="wv-chart-legend" id="chart-legend"></span>
+            </div>
+            <div class="wv-chart-wrap">
+              <canvas id="temp-chart" aria-label="Temperature trend chart" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4" id="row-rain">
+        <div class="col-12">
+          <div class="wv-card">
+            <div class="wv-card-header">
+              <span class="wv-card-icon">🌧️</span>
+              <span class="wv-card-title">Precipitation</span>
+            </div>
+            <div class="wv-rain-grid" id="rain-grid"></div>
+            <div class="wv-strip-wrap" id="strip-wrap">
+              <div class="wv-strip-label">3-Hour Forecast (Next 24h)</div>
+              <div class="wv-strip-row" id="strip-row"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4" id="row-forecast">
+        <div class="col-12">
+          <div class="wv-card">
+            <div class="wv-card-header">
+              <span class="wv-card-icon">📅</span>
+              <span class="wv-card-title">Extended Forecast</span>
+            </div>
+            <div class="wv-forecast-row" id="forecast-row"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="wv-footer" role="contentinfo">
+    <span>WeatherVision &copy; 2026 — Powered by OpenWeatherMap &amp; Open-Meteo</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script type="module" src="app.js?v=2"></script>
+</body>
+</html>
+
