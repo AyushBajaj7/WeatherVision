@@ -629,7 +629,9 @@ body::after {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
-  padding-bottom: 0.5rem;
+  padding-top: 8px;
+  margin-top: -8px;
+  padding-bottom: 0.65rem;
 }
 .wv-strip-slot {
   flex: 0 0 auto;
@@ -667,7 +669,9 @@ body::after {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
-  padding-bottom: 0.5rem;
+  padding-top: 8px;
+  margin-top: -8px;
+  padding-bottom: 0.65rem;
 }
 .wv-forecast-card {
   flex: 1 1 0;
